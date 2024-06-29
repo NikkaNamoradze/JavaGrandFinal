@@ -12,11 +12,26 @@ import java.util.stream.Collectors;
 
 public class DBUtils {
 
-    private static String URL = "jdbc:mysql://localhost:3306/products";
-    private static String USERNAME = "root";
-    private static String PASSWORD = "";
+    private static final String URL = "jdbc:mysql://localhost:3306/";
+    private static final String DATABASE_NAME = "demoproducts";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = "";
+
+    private Connection connection;
     private Statement statement;
     private static DBUtils instance;
+
+    private DBUtils() {
+        try {
+            connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+            statement = connection.createStatement();
+            createDatabaseIfNotExists();
+            useDatabase();
+            createTableIfNotExists();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     public synchronized static DBUtils getInstance() {
         if (instance == null) {
@@ -26,8 +41,39 @@ public class DBUtils {
     }
 
     public void openConnection() throws SQLException {
-        Connection connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
-        this.statement = connection.createStatement();
+        if (connection == null || connection.isClosed()) {
+            connection = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+        }
+    }
+
+    private void createDatabaseIfNotExists() {
+        try {
+            statement.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DATABASE_NAME);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void useDatabase() {
+        try {
+            statement.executeUpdate("USE " + DATABASE_NAME);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void createTableIfNotExists() {
+        try {
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS Products (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "name VARCHAR(255) NOT NULL," +
+                    "price INT NOT NULL," +
+                    "quantity INT NOT NULL" +
+                    ")";
+            statement.executeUpdate(createTableSQL);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void insertProduct(String name, int price, int quantity) throws SQLException {
